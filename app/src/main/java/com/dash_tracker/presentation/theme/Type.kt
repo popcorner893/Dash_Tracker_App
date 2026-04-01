@@ -1,4 +1,4 @@
-package com.dash_tracker.ui.theme
+package com.dash_tracker.presentation.theme
 
 import androidx.compose.material3.Typography
 import androidx.compose.ui.text.TextStyle
