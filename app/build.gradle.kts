@@ -83,4 +83,10 @@ dependencies {
     // Gráficos para las estadísticas
     implementation(libs.vico.compose)
     implementation(libs.vico.compose.m3)
+    // Firebase
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.analytics)
+    implementation(libs.firebase.auth)
+    implementation(libs.firebase.firestore)
+
 }
