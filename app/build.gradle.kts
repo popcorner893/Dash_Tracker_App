@@ -88,6 +88,10 @@ dependencies {
     // Gráficos para las estadísticas
     implementation(libs.vico.compose)
     implementation(libs.vico.compose.m3)
+
+    // Manejo de fechas
+    implementation(libs.kotlinx.datetime)
+
     // Firebase
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.analytics)

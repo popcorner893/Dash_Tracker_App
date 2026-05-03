@@ -5,6 +5,7 @@ import java.util.Date
 data class Habito(
     val id: Int = 0,
     val titulo: String,
+    val categoria: CategoriaHabito,
     val frecuencia: TipoFrecuencia,
     val color: String, // Guardaremos el Hexadecimal ej. "#FF0000"
     val activo: Boolean = true,

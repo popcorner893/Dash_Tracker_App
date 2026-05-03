@@ -9,7 +9,8 @@ import androidx.navigation.compose.rememberNavController
 import com.dash_tracker.presentation.auth.LoginScreen
 import com.dash_tracker.presentation.auth.RegisterScreen
 import com.dash_tracker.presentation.theme.Dash_TrackerTheme
-import com.dash_tracker.presentation.habits.DashboardScreen
+import com.dash_tracker.presentation.habits.CreateHabitRoute
+import com.dash_tracker.presentation.habits.DashboardRoute
 @Composable
 fun AppNavigation() {
     val navController = rememberNavController()
@@ -48,15 +49,18 @@ fun AppNavigation() {
 
         // PANTALLA PRINCIPAL (DASHBOARD)
         composable(Screen.Dashboard.route) {
-            DashboardScreen(
+            DashboardRoute(
                 onNavigateToCreateHabit = {
                     navController.navigate(Screen.CreateHabit.route) // Va a la pantalla de crear
                 }
             )
         }
         composable(Screen.CreateHabit.route) {
-            // Esto lo haremos en el siguiente paso
-            Text("Pantalla para Crear Hábito en construcción...")
+            CreateHabitRoute(
+                onNavigateBack = {
+                    navController.popBackStack()
+                }
+            )
         }
 
     }

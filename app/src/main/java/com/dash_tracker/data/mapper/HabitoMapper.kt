@@ -8,6 +8,7 @@ fun HabitoEntity.toDomain(): Habito {
     return Habito(
         id = id,
         titulo = titulo,
+        categoria = categoria,
         frecuencia = frecuencia,
         color = color,
         activo = activo,
@@ -20,6 +21,7 @@ fun Habito.toEntity(): HabitoEntity {
     return HabitoEntity(
         id = id,
         titulo = titulo,
+        categoria = categoria,
         frecuencia = frecuencia,
         color = color,
         activo = activo,
