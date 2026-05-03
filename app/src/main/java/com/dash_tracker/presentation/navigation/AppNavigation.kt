@@ -2,11 +2,14 @@ package com.dash_tracker.presentation.navigation
 
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.dash_tracker.presentation.auth.LoginScreen
-
+import com.dash_tracker.presentation.auth.RegisterScreen
+import com.dash_tracker.presentation.theme.Dash_TrackerTheme
+import com.dash_tracker.presentation.habits.DashboardScreen
 @Composable
 fun AppNavigation() {
     val navController = rememberNavController()
@@ -30,13 +33,31 @@ fun AppNavigation() {
 
         // PANTALLA DE REGISTRO
         composable(Screen.Register.route) {
-            // TODO: Crearemos RegisterScreen en el próximo paso
-            Text("Pantalla de Registro en construcción...")
+            RegisterScreen(
+                onNavigateBackToLogin = {
+                    navController.popBackStack() // Vuelve a la pantalla anterior (Login)
+                },
+                onRegisterSuccess = {
+                    // Si se registra bien, lo mandamos directo al Dashboard y borramos el historial
+                    navController.navigate(Screen.Dashboard.route) {
+                        popUpTo(Screen.Login.route) { inclusive = true }
+                    }
+                }
+            )
         }
 
         // PANTALLA PRINCIPAL (DASHBOARD)
         composable(Screen.Dashboard.route) {
-            Text("¡Bienvenido al Dashboard de tus Hábitos!")
+            DashboardScreen(
+                onNavigateToCreateHabit = {
+                    navController.navigate(Screen.CreateHabit.route) // Va a la pantalla de crear
+                }
+            )
         }
+        composable(Screen.CreateHabit.route) {
+            // Esto lo haremos en el siguiente paso
+            Text("Pantalla para Crear Hábito en construcción...")
+        }
+
     }
 }
