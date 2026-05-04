@@ -9,7 +9,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.filled.CalendarToday
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -19,15 +20,16 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.dash_tracker.domain.model.CategoriaHabito
 import com.dash_tracker.domain.model.TipoFrecuencia
-import java.util.Calendar
 import java.util.Date
-import java.util.Locale
+
+
+data class VisualData(val nombre: String, val icono: ImageVector, val color: Color)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -35,6 +37,7 @@ fun CreateHabitScreen(
     onNavigateBack: () -> Unit,
     onHabitCreated: (String, CategoriaHabito, TipoFrecuencia, String, Date) -> Unit
 ) {
+    // --- ESTADOS ---
     var habitName by remember { mutableStateOf("") }
     var selectedCategory by remember { mutableStateOf(CategoriaHabito.OTROS) }
     var selectedFrequency by remember { mutableStateOf(TipoFrecuencia.DIARIA) }
@@ -42,6 +45,7 @@ fun CreateHabitScreen(
     var creationDate by remember { mutableStateOf(Date()) }
     var showDatePicker by remember { mutableStateOf(false) }
 
+    // --- LÓGICA DEL DATE PICKER ---
     if (showDatePicker) {
         val datePickerState = rememberDatePickerState(
             initialSelectedDateMillis = creationDate.time
@@ -54,29 +58,15 @@ fun CreateHabitScreen(
                         creationDate = Date(it)
                     }
                     showDatePicker = false
-                }) {
-                    Text("OK")
-                }
+                }) { Text("OK") }
             },
             dismissButton = {
-                TextButton(onClick = { showDatePicker = false }) {
-                    Text("Cancel")
-                }
+                TextButton(onClick = { showDatePicker = false }) { Text("Cancel") }
             }
         ) {
             DatePicker(state = datePickerState)
         }
     }
-
-    // Definición de categorías con sus respectivos iconos y colores
-    val categorias = listOf(
-        CategoryItem(CategoriaHabito.SALUD, Icons.Default.Favorite, Color(0xFFE91E63)),
-        CategoryItem(CategoriaHabito.ESTUDIO, Icons.Default.Book, Color(0xFF2196F3)),
-        CategoryItem(CategoriaHabito.TRABAJO, Icons.Default.Work, Color(0xFF4CAF50)),
-        CategoryItem(CategoriaHabito.DEPORTE, Icons.Default.FitnessCenter, Color(0xFFFF9800)),
-        CategoryItem(CategoriaHabito.PRODUCTIVIDAD, Icons.Default.Star, Color(0xFF9C27B0)),
-        CategoryItem(CategoriaHabito.OTROS, Icons.Default.Category, Color(0xFF607D8B))
-    )
 
     Scaffold(
         topBar = {
@@ -91,7 +81,11 @@ fun CreateHabitScreen(
                             .clip(CircleShape)
                             .background(MaterialTheme.colorScheme.surfaceVariant)
                     ) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", modifier = Modifier.size(20.dp))
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Back",
+                            modifier = Modifier.size(20.dp)
+                        )
                     }
                 },
                 actions = {
@@ -108,7 +102,11 @@ fun CreateHabitScreen(
                             .clip(RoundedCornerShape(12.dp))
                             .background(MaterialTheme.colorScheme.primary)
                     ) {
-                        Icon(Icons.Default.Check, contentDescription = "Save", tint = MaterialTheme.colorScheme.onPrimary)
+                        Icon(
+                            imageVector = Icons.Default.Check,
+                            contentDescription = "Save",
+                            tint = MaterialTheme.colorScheme.onPrimary
+                        )
                     }
                 },
                 colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
@@ -125,6 +123,7 @@ fun CreateHabitScreen(
                 .verticalScroll(rememberScrollState())
                 .padding(16.dp)
         ) {
+            // 1. INFORMACIÓN GENERAL
             Text(
                 "General information",
                 fontWeight = FontWeight.Bold,
@@ -134,9 +133,7 @@ fun CreateHabitScreen(
 
             Card(
                 shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant
-                ),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
                 elevation = CardDefaults.cardElevation(0.dp)
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
@@ -144,10 +141,7 @@ fun CreateHabitScreen(
                         value = habitName,
                         onValueChange = { habitName = it },
                         placeholder = { Text("Habit name", fontSize = 14.sp) },
-                        textStyle = TextStyle(
-                            fontSize = 14.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        ),
+                        textStyle = TextStyle(fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant),
                         colors = TextFieldDefaults.colors(
                             focusedContainerColor = Color.Transparent,
                             unfocusedContainerColor = Color.Transparent,
@@ -162,6 +156,7 @@ fun CreateHabitScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
+            // 2. FECHA DE CREACIÓN
             Text(
                 "Date of creation",
                 fontWeight = FontWeight.Bold,
@@ -171,15 +166,11 @@ fun CreateHabitScreen(
             Card(
                 onClick = { showDatePicker = true },
                 shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surface
-                ),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                 elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
             ) {
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
+                    modifier = Modifier.fillMaxWidth().padding(16.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Icon(
@@ -199,6 +190,7 @@ fun CreateHabitScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
+            // 3. SELECCIÓN DE CATEGORÍA
             Text(
                 "Category",
                 fontWeight = FontWeight.Bold,
@@ -207,23 +199,20 @@ fun CreateHabitScreen(
             )
             Card(
                 shape = RoundedCornerShape(20.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surface
-                ),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                 elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
             ) {
                 Column {
-                    categorias.forEachIndexed { index, item ->
+                    CategoriaHabito.entries.forEachIndexed { index, categoriaEnum ->
+                        val visualData = categoriaEnum.toVisual()
                         SelectionItem(
-                            label = item.categoria.name.lowercase().replaceFirstChar { it.uppercase() },
-                            icon = item.icon,
-                            iconColor = item.color,
-                            isSelected = selectedCategory == item.categoria,
-                            onSelect = { 
-                                selectedCategory = item.categoria
-                            }
+                            label = visualData.nombre,
+                            icon = visualData.icono,
+                            iconColor = visualData.color,
+                            isSelected = selectedCategory == categoriaEnum,
+                            onSelect = { selectedCategory = categoriaEnum }
                         )
-                        if (index < categorias.size - 1) {
+                        if (index < CategoriaHabito.entries.size - 1) {
                             HorizontalDivider(
                                 modifier = Modifier.padding(horizontal = 16.dp),
                                 thickness = 0.5.dp,
@@ -236,6 +225,7 @@ fun CreateHabitScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
+            // 4. SELECCIÓN DE FRECUENCIA
             Text(
                 "Frequency",
                 fontWeight = FontWeight.Bold,
@@ -244,9 +234,7 @@ fun CreateHabitScreen(
             )
             Card(
                 shape = RoundedCornerShape(20.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surface
-                ),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                 elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
             ) {
                 Column {
@@ -272,20 +260,7 @@ fun CreateHabitScreen(
     }
 }
 
-@Composable
-fun CreateHabitRoute(
-    onNavigateBack: () -> Unit,
-    viewModel: HabitViewModel = hiltViewModel()
-) {
-    CreateHabitScreen(
-        onNavigateBack = onNavigateBack,
-        onHabitCreated = { titulo, cat, freq, color, fecha ->
-            viewModel.crearHabito(titulo, cat, freq, color, fecha)
-        }
-    )
-}
-
-data class CategoryItem(val categoria: CategoriaHabito, val icon: ImageVector, val color: Color)
+// --- COMPONENTES AUXILIARES ---
 
 @Composable
 fun SelectionItem(
@@ -354,6 +329,19 @@ fun FrequencyItem(
             )
         }
     }
+}
+
+@Composable
+fun CreateHabitRoute(
+    onNavigateBack: () -> Unit,
+    viewModel: HabitViewModel = hiltViewModel()
+) {
+    CreateHabitScreen(
+        onNavigateBack = onNavigateBack,
+        onHabitCreated = { titulo, cat, freq, color, fecha ->
+            viewModel.crearHabito(titulo, cat, freq, color, fecha)
+        }
+    )
 }
 
 @Preview(showBackground = true)

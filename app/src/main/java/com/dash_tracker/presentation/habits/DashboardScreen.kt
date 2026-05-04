@@ -1,37 +1,36 @@
 package com.dash_tracker.presentation.habits
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.*
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
-import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.core.graphics.toColorInt
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.dash_tracker.domain.model.CategoriaHabito
 import com.dash_tracker.domain.model.Habito
 import com.dash_tracker.domain.model.TipoFrecuencia
+import com.dash_tracker.presentation.theme.Dash_TrackerTheme
+import com.dash_tracker.presentation.navigation.AppDrawer
+import kotlinx.coroutines.launch
 import kotlinx.datetime.*
-import kotlinx.coroutines.flow.StateFlow
+import kotlinx.datetime.TimeZone // Asegúrate que sea este
 import java.util.Date
-import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -39,87 +38,241 @@ fun DashboardScreen(
     onNavigateToCreateHabit: () -> Unit,
     habitos: List<Habito> = emptyList()
 ) {
-    // Lista de categorías para el ejemplo (REQ-014)
-    val categorias = listOf("Todos", "Otros", "Salud", "Estudio", "Trabajo")
-    
-    // Generar 16 días (2 pasados, Hoy y 13 futuros)
-    val today = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
-    val days = (-2..13).map { today.plus(it, DateTimeUnit.DAY) }
-    val currentMonth = today.month.name.lowercase().replaceFirstChar { it.uppercase() }
+    // 1. Corregir TimeZone para evitar conflictos con java.util
+    val userTimeZone = remember { TimeZone.currentSystemDefault() }
+    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
+    val scope = rememberCoroutineScope()
+    var selectedDate by remember { mutableStateOf(Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date) }
 
+    val days = remember(selectedDate) {
+        (0..8).map { selectedDate.plus(it, DateTimeUnit.DAY) }
+    }
     val listState = rememberLazyListState()
+    val currentMonth = selectedDate.month.name.lowercase().replaceFirstChar { it.uppercase() }
+// --- ESTADOS DE LA PANTALLA ---
+    var showDatePicker by remember { mutableStateOf(false) }
 
-    // Scroll automático al día de hoy (índice 2, ya que hay 2 días antes)
-    LaunchedEffect(Unit) {
-        listState.scrollToItem(2)
+    // --- NUEVOS ESTADOS PARA EL FILTRO ---
+    var categoriaSeleccionada by remember { mutableStateOf("Todos") }
+
+    // Generar las opciones del filtro ("Todos" + los valores de tu Enum)
+    val opcionesFiltro = remember {
+        listOf("Todos") + CategoriaHabito.entries.map {
+            it.name.lowercase().replaceFirstChar { char -> char.uppercase() }
+        }
     }
 
-    Scaffold(
-        floatingActionButton = {
-            FloatingActionButton(
-                onClick = onNavigateToCreateHabit,
-                shape = CircleShape,
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = Color.White,
-                modifier = Modifier
-                    .size(70.dp) // Tamaño personalizado exacto
-                    .offset(y = 60.dp)
-            ) {
-                Icon(Icons.Default.Add, contentDescription = "Añadir Hábito", modifier = Modifier.size(40.dp))
+    // Crear la lista filtrada de hábitos que le pasaremos a la LazyColumn
+    val habitosFiltrados = remember(habitos, categoriaSeleccionada) {
+        if (categoriaSeleccionada == "Todos") {
+            habitos
+        } else {
+            habitos.filter { habito ->
+                // Comparamos el nombre de la categoría del hábito con el chip seleccionado
+                val nombreCategoria = habito.categoria.name.lowercase().replaceFirstChar { c -> c.uppercase() }
+                nombreCategoria == categoriaSeleccionada
             }
-        },
-        floatingActionButtonPosition = FabPosition.Center,
-        bottomBar = { MyBottomNavigationBar() }
-    ) { padding ->
-        Column(modifier = Modifier.padding(padding)) {
-
-            // 1. TÍTULO DEL MES Y CALENDARIO HORIZONTAL
-            Text(
-                text = currentMonth,
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(start = 16.dp, top = 16.dp)
+        }
+    }
+    ModalNavigationDrawer(
+        drawerState = drawerState,
+        drawerContent = {
+            AppDrawer(
+                onNavigateToHabits = { scope.launch { drawerState.close() } },
+                onNavigateToProfile = { },
+                onNavigateToFocus = { },
+                onNavigateToSettings = { },
+                onNavigateToPremium = { },
+                closeDrawer = { scope.launch { drawerState.close() } }
             )
+        }
+    ) {
+        Scaffold(
+            topBar = {
+                CenterAlignedTopAppBar(
+                    title = { Text("Dash Tracker", style = MaterialTheme.typography.titleMedium) },
+                    navigationIcon = {
+                        IconButton(onClick = { scope.launch { drawerState.open() } }) {
+                            Icon(Icons.Default.Menu, "Menu")
+                        }
+                    },
+                    actions = {
+                        IconButton(onClick = { }) { Icon(Icons.Default.Search, "Buscar") }
+                        IconButton(onClick = { showDatePicker = true }) { Icon(Icons.Default.CalendarMonth, "Calendario") }
+                    }
+                )
+            },
+            floatingActionButton = {
+                FloatingActionButton(
+                    onClick = onNavigateToCreateHabit,
+                    shape = CircleShape,
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier
+                        .size(65.dp)
+                        .offset(y = 50.dp) // Reducido un poco para que no desaparezca en el preview
+                ) {
+                    Icon(Icons.Default.Add, "Añadir", tint = Color.White, modifier = Modifier.size(40.dp))
+                }
+            },
+            floatingActionButtonPosition = FabPosition.Center,
+            bottomBar = { MyBottomNavigationBar() }
+        ) { padding ->
 
-            LazyRow(
-                state = listState,
-                modifier = Modifier.padding(vertical = 8.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                contentPadding = PaddingValues(horizontal = 16.dp)
+            // --- DATE PICKER (Encapsulado para evitar crashes en preview) ---
+            if (showDatePicker) {
+                // Usamos UTC para el picker para evitar desfases de milisegundos
+                val datePickerState = rememberDatePickerState(
+                    initialSelectedDateMillis = selectedDate.atStartOfDayIn(TimeZone.UTC).toEpochMilliseconds()
+                )
+                DatePickerDialog(
+                    onDismissRequest = { showDatePicker = false },
+                    confirmButton = {
+                        TextButton(onClick = {
+                            datePickerState.selectedDateMillis?.let {
+                                selectedDate = Instant.fromEpochMilliseconds(it)
+                                    .toLocalDateTime(TimeZone.UTC).date
+                            }
+                            showDatePicker = false
+                        }) { Text("OK") }
+                    }
+                ) {
+                    DatePicker(state = datePickerState)
+                }
+            }
+
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding)
             ) {
-                items(days) { date ->
-                    val dayName = date.dayOfWeek.name.take(3).lowercase().replaceFirstChar { it.uppercase() }
-                    val isToday = date == today
-                    DayCard(
-                        dayName = dayName,
-                        dayOfMonth = date.dayOfMonth.toString(),
-                        isSelected = isToday
-                    )
+                Text(
+                    text = currentMonth,
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(start = 16.dp, top = 8.dp)
+                )
+
+                LazyRow(
+                    state = listState,
+                    modifier = Modifier.padding(vertical = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    contentPadding = PaddingValues(horizontal = 16.dp)
+                ) {
+                    items(days) { date ->
+                        val dayName = date.dayOfWeek.name.take(3).lowercase().replaceFirstChar { it.uppercase() }
+                        DayCard(
+                            dayName = dayName,
+                            dayOfMonth = date.dayOfMonth.toString(),
+                            isSelected = date == selectedDate,
+                            onClick = { selectedDate = date }
+                        )
+                    }
                 }
-            }
 
-            // 2. FILTROS DE CATEGORÍA
-            LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp), contentPadding = PaddingValues(horizontal = 16.dp)) {
-                items(categorias) { cat ->
-                    FilterChip(selected = cat == "Todos", onClick = {}, label = { Text(cat) })
+                LazyRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    contentPadding = PaddingValues(horizontal = 16.dp),
+                    modifier = Modifier.padding(vertical = 8.dp)
+                ) {
+                    items(opcionesFiltro) { cat ->
+                        FilterChip(
+                            selected = cat == categoriaSeleccionada, // Se pinta si está seleccionado
+                            onClick = { categoriaSeleccionada = cat }, // Actualiza el estado al tocarlo
+                            label = { Text(cat) },
+                            shape = RoundedCornerShape(20.dp),
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                                selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+                        )
+                    }
                 }
-            }
 
-            // 3. BARRA DE PROGRESO
-            Text("Progreso 90%", modifier = Modifier.padding(horizontal = 16.dp))
-            LinearProgressIndicator(progress = 0.9f, modifier = Modifier.fillMaxWidth().padding(16.dp))
-
-            // 4. LISTA DE HÁBITOS
-            LazyColumn(modifier = Modifier.padding(horizontal = 16.dp)) {
-                items(habitos) { habito ->
-                    HabitCard(habito)
+                // 4. LISTA DE HÁBITOS FILTRADA
+                // Usamos 'habitosFiltrados' en lugar de la original 'habitos'
+                if (habitosFiltrados.isEmpty()) {
+                    Box(modifier = Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
+                        Text(
+                            text = if (categoriaSeleccionada == "Todos") "No hay hábitos para este día" else "No tienes hábitos en $categoriaSeleccionada",
+                            color = Color.Gray
+                        )
+                    }
+                } else {
+                    LazyColumn(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        contentPadding = PaddingValues(bottom = 100.dp) // Espacio para el FAB
+                    ) {
+                        items(habitosFiltrados) { habito ->
+                            HabitCard(habito)
+                        }
+                    }
                 }
             }
         }
     }
 }
 
-// Punto de entrada real que usa el ViewModel
+@Composable
+fun HabitCard(habito: Habito) {
+    // Usamos el toVisual() normal sin @Composable
+    val uiConfig = habito.categoria.toVisual()
+
+    val habitCheckColor = remember(habito.color) {
+        try { Color(android.graphics.Color.parseColor(habito.color)) }
+        catch (e: Exception) { Color.Gray }
+    }
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+    ) {
+        Row(
+            modifier = Modifier.padding(16.dp).fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(CircleShape)
+                    .background(uiConfig.color.copy(alpha = 0.1f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = uiConfig.icono,
+                    contentDescription = null,
+                    tint = uiConfig.color,
+                    modifier = Modifier.size(24.dp)
+                )
+            }
+
+            Spacer(modifier = Modifier.width(16.dp))
+
+            Column(modifier = Modifier.weight(1f)) {
+                Text(text = habito.titulo, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                Text(
+                    text = habito.frecuencia.name.lowercase().replaceFirstChar { it.uppercase() },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color.Gray
+                )
+            }
+
+            Box(
+                modifier = Modifier.size(32.dp).clip(CircleShape).background(habitCheckColor),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(Icons.Default.Check, null, tint = Color.White, modifier = Modifier.size(20.dp))
+            }
+        }
+    }
+}
+// --- COMPONENTES FALTANTES (Pégalos al final del archivo) ---
+
+// 1. Punto de entrada real que usa el ViewModel y Hilt
 @Composable
 fun DashboardRoute(
     onNavigateToCreateHabit: () -> Unit,
@@ -132,14 +285,17 @@ fun DashboardRoute(
     )
 }
 
+// 2. Tarjeta individual de los días del calendario
 @Composable
-fun DayCard(dayName: String, dayOfMonth: String, isSelected: Boolean) {
+fun DayCard(dayName: String, dayOfMonth: String, isSelected: Boolean, onClick: () -> Unit) {
     Card(
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(
             containerColor = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant
         ),
-        modifier = Modifier.width(60.dp)
+        modifier = Modifier
+            .width(60.dp)
+            .clickable { onClick() }
     ) {
         Column(
             modifier = Modifier.padding(vertical = 12.dp, horizontal = 8.dp),
@@ -160,100 +316,53 @@ fun DayCard(dayName: String, dayOfMonth: String, isSelected: Boolean) {
     }
 }
 
+// 3. Barra de navegación inferior
 @Composable
-fun HabitCard(habito: Habito) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 8.dp),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+fun MyBottomNavigationBar() {
+    NavigationBar(
+        containerColor = Color.White,
+        tonalElevation = 8.dp
     ) {
-        Row(
-            modifier = Modifier
-                .padding(16.dp)
-                .fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Column {
-                Text(
-                    text = habito.titulo,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
-                Text(
-                    text = habito.frecuencia.name.lowercase().replaceFirstChar { it.uppercase() },
-                    style = MaterialTheme.typography.bodySmall
-                )
-            }
-            IconButton(
-                onClick = { /* Acción de completar */ },
-                modifier = Modifier
-                    .clip(CircleShape)
-                    .background(Color(habito.color.toColorInt()))
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Check,
-                    contentDescription = "Completar",
-                    tint = Color.White
-                )
-            }
-        }
+        NavigationBarItem(
+            icon = { Icon(Icons.Default.DateRange, "Hoy") },
+            label = { Text("Hoy") },
+            selected = true,
+            onClick = {}
+        )
+        NavigationBarItem(
+            icon = { Icon(Icons.AutoMirrored.Filled.List, "Hábitos") },
+            label = { Text("Hábitos") },
+            selected = false,
+            onClick = {}
+        )
+
+        // Espacio vital para que el FAB central no tape los iconos
+        Spacer(Modifier.weight(1f))
+
+        NavigationBarItem(
+            icon = { Icon(Icons.Default.AccountBalanceWallet, "Finanzas") },
+            label = { Text("Finanzas") },
+            selected = false,
+            onClick = {}
+        )
+        NavigationBarItem(
+            icon = { Icon(Icons.Default.BarChart, "Stats") },
+            label = { Text("Stats") },
+            selected = false,
+            onClick = {}
+        )
     }
 }
 
-@Preview(showBackground = true)
+// Previsualización robusta
+@Preview(showBackground = true, showSystemUi = true)
 @Composable
 fun DashboardScreenPreview() {
     val sampleHabitos = listOf(
-        Habito(
-            id = 1,
-            titulo = "Beber Agua",
-            categoria = CategoriaHabito.SALUD,
-            frecuencia = TipoFrecuencia.DIARIA,
-            color = "#4A90E2",
-            activo = true,
-            fechaCreacion = Date()
-        ),
-        Habito(
-            id = 2,
-            titulo = "Estudiar Kotlin",
-            categoria = CategoriaHabito.ESTUDIO,
-            frecuencia = TipoFrecuencia.DIARIA,
-            color = "#FF8C00",
-            activo = true,
-            fechaCreacion = Date()
-        )
+        Habito(1, "Beber Agua", CategoriaHabito.SALUD, TipoFrecuencia.DIARIA, "#4A90E2", true, Date()),
+        Habito(2, "Estudiar Kotlin", CategoriaHabito.ESTUDIO, TipoFrecuencia.DIARIA, "#FF8C00", true, Date())
     )
-    DashboardScreen(onNavigateToCreateHabit = {}, habitos = sampleHabitos)
-}
-
-@Preview(showBackground = true)
-@Composable
-fun HabitCardPreview() {
-    val sampleHabito = Habito(
-        id = 1,
-        titulo = "Beber Agua",
-        categoria = CategoriaHabito.SALUD,
-        frecuencia = TipoFrecuencia.DIARIA,
-        color = "#4A90E2",
-        activo = true,
-        fechaCreacion = Date()
-    )
-    HabitCard(habito = sampleHabito)
-}
-
-@Composable
-fun MyBottomNavigationBar() {
-    NavigationBar {
-        NavigationBarItem(icon = { Icon(Icons.Default.DateRange, "Hoy") }, label = { Text("Hoy") }, selected = true, onClick = {})
-        NavigationBarItem(icon = { Icon(Icons.AutoMirrored.Filled.List, "Hábitos") }, label = { Text("Hábitos") }, selected = false, onClick = {})
-        
-        // Espacio para el FAB central
-        Spacer(modifier = Modifier.weight(1f))
-
-        NavigationBarItem(icon = { Icon(Icons.Default.AccountBalanceWallet, "Finanzas") }, label = { Text("Finanzas") }, selected = false, onClick = {})
-        NavigationBarItem(icon = { Icon(Icons.Default.BarChart, "Stats") }, label = { Text("Stats") }, selected = false, onClick = {})
+    Dash_TrackerTheme {
+        DashboardScreen(onNavigateToCreateHabit = {}, habitos = sampleHabitos)
     }
 }
