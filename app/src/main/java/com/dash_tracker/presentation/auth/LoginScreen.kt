@@ -10,6 +10,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.dash_tracker.R
@@ -204,4 +205,56 @@ fun HeaderSection() {
     Text(text = "Dash Tracker", style = MaterialTheme.typography.headlineLarge)
     Spacer(modifier = Modifier.height(8.dp))
     Text(text = "Bienvenido de nuevo", style = MaterialTheme.typography.bodyLarge)
+}
+
+
+
+// --- PREVIEWS ---
+
+@Preview(showBackground = true, showSystemUi = true)
+@Composable
+fun LoginContentPreview() {
+    LoginContent(
+        isLoading = false,
+        error = null,
+        onLogin = { _, _ -> },
+        onGoogleLogin = { },
+        onFacebookLogin = { },
+        onNavigateToRegister = { },
+        onClearError = { }
+    )
+}
+
+@Preview(showBackground = true, showSystemUi = true, name = "Loading State")
+@Composable
+fun LoginContentLoadingPreview() {
+    LoginContent(
+        isLoading = true,
+        error = null,
+        onLogin = { _, _ -> },
+        onGoogleLogin = { },
+        onFacebookLogin = { },
+        onNavigateToRegister = { },
+        onClearError = { }
+    )
+}
+
+@Preview(showBackground = true, showSystemUi = true, name = "With Error")
+@Composable
+fun LoginContentErrorPreview() {
+    LoginContent(
+        isLoading = false,
+        error = "Correo o contraseña inválidos",
+        onLogin = { _, _ -> },
+        onGoogleLogin = { },
+        onFacebookLogin = { },
+        onNavigateToRegister = { },
+        onClearError = { }
+    )
+}
+
+@Preview(showBackground = true, showSystemUi = true, name = "Header Only", heightDp = 250)
+@Composable
+fun HeaderSectionPreview() {
+    HeaderSection()
 }
