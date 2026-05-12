@@ -16,6 +16,7 @@ datastore = "1.1.2"
 ksp = "2.3.2"
 vico = "1.13.1"
 firebaseBom = "33.1.2"
+playServicesAuth = "21.2.0"
 kotlinx-datetime = "0.5.0"
 
 [libraries]
@@ -65,6 +66,7 @@ firebase-bom = { group = "com.google.firebase", name = "firebase-bom", version.r
 firebase-analytics = { group = "com.google.firebase", name = "firebase-analytics" }
 firebase-auth = { group = "com.google.firebase", name = "firebase-auth" } # Para login
 firebase-firestore = { group = "com.google.firebase", name = "firebase-firestore" } # Para la BD en la nube
+play-services-auth = { group = "com.google.android.gms", name = "play-services-auth", version.ref = "playServicesAuth" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

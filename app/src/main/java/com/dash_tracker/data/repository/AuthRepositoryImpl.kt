@@ -3,6 +3,7 @@ package com.dash_tracker.data.repository
 import com.dash_tracker.domain.model.Usuario
 import com.dash_tracker.domain.repository.AuthRepository
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.GoogleAuthProvider
 import kotlinx.coroutines.tasks.await
 import java.util.Date
 
@@ -49,6 +50,28 @@ class AuthRepositoryImpl(
                 ))
             } else {
                 Result.failure(Exception("Error al crear cuenta"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun loginConGoogle(idToken: String): Result<Usuario> {
+        return try {
+            val credential = GoogleAuthProvider.getCredential(idToken, null)
+            val authResult = firebaseAuth.signInWithCredential(credential).await()
+            val user = authResult.user
+
+            if (user != null) {
+                Result.success(Usuario(
+                    id = user.uid,
+                    nombre = user.displayName ?: "Usuario Google",
+                    email = user.email ?: "",
+                    fotoPerfil = user.photoUrl?.toString(),
+                    fechaRegistro = Date()
+                ))
+            } else {
+                Result.failure(Exception("Error al obtener usuario de Google"))
             }
         } catch (e: Exception) {
             Result.failure(e)

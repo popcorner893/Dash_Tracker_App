@@ -71,6 +71,23 @@ class AuthViewModel @Inject constructor(
         }
     }
 
+    fun loginGoogle(idToken: String) {
+        viewModelScope.launch {
+            _isLoading.value = true
+            _error.value = null
+
+            val result = authRepository.loginConGoogle(idToken)
+
+            result.onSuccess {
+                _isSuccess.value = true
+            }.onFailure { exception ->
+                _error.value = exception.message ?: "Error al iniciar sesión con Google"
+            }
+
+            _isLoading.value = false
+        }
+    }
+
     // Limpia los errores al cambiar de pantalla
     fun clearError() {
         _error.value = null
