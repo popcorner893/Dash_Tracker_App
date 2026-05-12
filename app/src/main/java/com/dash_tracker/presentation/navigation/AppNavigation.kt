@@ -1,16 +1,15 @@
 package com.dash_tracker.presentation.navigation
 
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.dash_tracker.presentation.auth.LoginScreen
 import com.dash_tracker.presentation.auth.RegisterScreen
-import com.dash_tracker.presentation.theme.Dash_TrackerTheme
 import com.dash_tracker.presentation.habits.CreateHabitRoute
 import com.dash_tracker.presentation.habits.DashboardRoute
+import com.dash_tracker.presentation.settings.SettingsScreen
+
 @Composable
 fun AppNavigation() {
     val navController = rememberNavController()
@@ -52,6 +51,9 @@ fun AppNavigation() {
             DashboardRoute(
                 onNavigateToCreateHabit = {
                     navController.navigate(Screen.CreateHabit.route) // Va a la pantalla de crear
+                },
+                onNavigateToSettings = {
+                    navController.navigate(Screen.Settings.route)
                 }
             )
         }
@@ -59,6 +61,21 @@ fun AppNavigation() {
             CreateHabitRoute(
                 onNavigateBack = {
                     navController.popBackStack()
+                }
+            )
+        }
+
+        // PANTALLA DE CONFIGURACIÓN
+        composable(Screen.Settings.route) {
+            SettingsScreen(
+                onNavigateBack = {
+                    navController.popBackStack()
+                },
+                onLogoutSuccess = {
+                    // Al cerrar sesión, volvemos al Login y limpiamos el stack
+                    navController.navigate(Screen.Login.route) {
+                        popUpTo(Screen.Dashboard.route) { inclusive = true }
+                    }
                 }
             )
         }

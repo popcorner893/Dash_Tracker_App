@@ -92,4 +92,9 @@ class AuthViewModel @Inject constructor(
     fun clearError() {
         _error.value = null
     }
+
+    fun logout() {
+        authRepository.logout()
+        _isSuccess.value = false // Reseteamos el estado de éxito
+    }
 }

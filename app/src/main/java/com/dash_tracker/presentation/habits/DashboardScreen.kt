@@ -21,6 +21,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.core.graphics.toColorInt
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.dash_tracker.domain.model.CategoriaHabito
 import com.dash_tracker.domain.model.Habito
@@ -36,6 +37,7 @@ import java.util.Date
 @Composable
 fun DashboardScreen(
     onNavigateToCreateHabit: () -> Unit,
+    onNavigateToSettings: () -> Unit,
     habitos: List<Habito> = emptyList()
 ) {
     // 1. Corregir TimeZone para evitar conflictos con java.util
@@ -81,7 +83,10 @@ fun DashboardScreen(
                 onNavigateToHabits = { scope.launch { drawerState.close() } },
                 onNavigateToProfile = { },
                 onNavigateToFocus = { },
-                onNavigateToSettings = { },
+                onNavigateToSettings = { 
+                    onNavigateToSettings()
+                    scope.launch { drawerState.close() } 
+                },
                 onNavigateToPremium = { },
                 closeDrawer = { scope.launch { drawerState.close() } }
             )
@@ -222,7 +227,7 @@ fun HabitCard(habito: Habito) {
     val uiConfig = habito.categoria.toVisual()
 
     val habitCheckColor = remember(habito.color) {
-        try { Color(android.graphics.Color.parseColor(habito.color)) }
+        try { Color(habito.color.toColorInt()) }
         catch (e: Exception) { Color.Gray }
     }
 
@@ -276,11 +281,13 @@ fun HabitCard(habito: Habito) {
 @Composable
 fun DashboardRoute(
     onNavigateToCreateHabit: () -> Unit,
+    onNavigateToSettings: () -> Unit,
     viewModel: HabitViewModel = hiltViewModel()
 ) {
     val habitos by viewModel.habitos.collectAsState()
     DashboardScreen(
         onNavigateToCreateHabit = onNavigateToCreateHabit,
+        onNavigateToSettings = onNavigateToSettings,
         habitos = habitos
     )
 }
@@ -363,6 +370,6 @@ fun DashboardScreenPreview() {
         Habito(2, "Estudiar Kotlin", CategoriaHabito.ESTUDIO, TipoFrecuencia.DIARIA, "#FF8C00", true, Date())
     )
     Dash_TrackerTheme {
-        DashboardScreen(onNavigateToCreateHabit = {}, habitos = sampleHabitos)
+        DashboardScreen(onNavigateToCreateHabit = {}, onNavigateToSettings = {}, habitos = sampleHabitos)
     }
 }

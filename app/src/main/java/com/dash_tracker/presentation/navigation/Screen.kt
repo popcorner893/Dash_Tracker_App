@@ -6,4 +6,5 @@ sealed class Screen(val route: String) {
     object Register : Screen("register_screen")
     object Dashboard : Screen("dashboard_screen") // La pantalla principal de hábitos
     object CreateHabit : Screen("create_habit_screen")
+    object Settings : Screen("settings_screen")
 }
