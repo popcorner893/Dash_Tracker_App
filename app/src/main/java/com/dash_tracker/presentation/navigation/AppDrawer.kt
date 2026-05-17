@@ -32,7 +32,7 @@ fun AppDrawer(
     val fullDate = SimpleDateFormat("dd 'de' MMMM, yyyy", Locale("es", "ES")).format(calendar.time)
 
     ModalDrawerSheet(
-        drawerContainerColor = Color(0xFFE0E0E0), // Color gris claro del fondo
+        drawerContainerColor = MaterialTheme.colorScheme.surface,
         drawerShape = RoundedCornerShape(topEnd = 24.dp, bottomEnd = 24.dp),
         modifier = Modifier.fillMaxHeight().width(300.dp)
     ) {
@@ -47,13 +47,13 @@ fun AppDrawer(
                 text = dayName,
                 fontSize = 32.sp,
                 fontWeight = FontWeight.Bold,
-                color = Color.Black
+                color = MaterialTheme.colorScheme.onSurface
             )
             Text(
                 text = fullDate,
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Medium,
-                color = Color.DarkGray
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
             Spacer(modifier = Modifier.height(30.dp))
@@ -93,16 +93,26 @@ fun AppDrawer(
                     .padding(vertical = 8.dp),
                 shape = RoundedCornerShape(16.dp),
                 color = Color.Transparent,
-                border = androidx.compose.foundation.BorderStroke(1.dp, Color.Gray),
+                border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
                 onClick = { onNavigateToPremium(); closeDrawer() }
             ) {
                 Row(
                     modifier = Modifier.padding(16.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(Icons.Outlined.WorkspacePremium, contentDescription = null, modifier = Modifier.size(32.dp))
+                    Icon(
+                        Icons.Outlined.WorkspacePremium,
+                        contentDescription = null,
+                        modifier = Modifier.size(32.dp),
+                        tint = MaterialTheme.colorScheme.onSurface
+                    )
                     Spacer(modifier = Modifier.width(16.dp))
-                    Text("Premium", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                    Text(
+                        "Premium",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 18.sp,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
                 }
             }
             Spacer(modifier = Modifier.height(12.dp))
@@ -123,7 +133,7 @@ fun DrawerItem(
             .height(56.dp),
         shape = RoundedCornerShape(16.dp),
         color = Color.Transparent,
-        border = androidx.compose.foundation.BorderStroke(1.dp, Color.Gray),
+        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
         onClick = onClick
     ) {
         Row(
@@ -134,14 +144,14 @@ fun DrawerItem(
                 imageVector = icon,
                 contentDescription = null,
                 modifier = Modifier.size(28.dp),
-                tint = Color.Black
+                tint = MaterialTheme.colorScheme.onSurface
             )
             Spacer(modifier = Modifier.width(16.dp))
             Text(
                 text = label,
                 fontSize = 16.sp,
                 fontWeight = FontWeight.SemiBold,
-                color = Color.Black
+                color = MaterialTheme.colorScheme.onSurface
             )
         }
     }

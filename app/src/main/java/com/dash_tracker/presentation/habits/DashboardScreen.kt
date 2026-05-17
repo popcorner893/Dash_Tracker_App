@@ -38,6 +38,7 @@ import java.util.Date
 fun DashboardScreen(
     onNavigateToCreateHabit: () -> Unit,
     onNavigateToSettings: () -> Unit,
+    onNavigateToHabitList: () -> Unit, // <--- NUEVO
     habitos: List<Habito> = emptyList()
 ) {
     // 1. Corregir TimeZone para evitar conflictos con java.util
@@ -120,7 +121,7 @@ fun DashboardScreen(
                 }
             },
             floatingActionButtonPosition = FabPosition.Center,
-            bottomBar = { MyBottomNavigationBar() }
+            bottomBar = { MyBottomNavigationBar(onNavigateToHabitList = onNavigateToHabitList) }
         ) { padding ->
 
             // --- DATE PICKER (Encapsulado para evitar crashes en preview) ---
@@ -282,12 +283,14 @@ fun HabitCard(habito: Habito) {
 fun DashboardRoute(
     onNavigateToCreateHabit: () -> Unit,
     onNavigateToSettings: () -> Unit,
+    onNavigateToHabitList: () -> Unit, // <--- NUEVO
     viewModel: HabitViewModel = hiltViewModel()
 ) {
     val habitos by viewModel.habitos.collectAsState()
     DashboardScreen(
         onNavigateToCreateHabit = onNavigateToCreateHabit,
         onNavigateToSettings = onNavigateToSettings,
+        onNavigateToHabitList = onNavigateToHabitList, // <--- NUEVO
         habitos = habitos
     )
 }
@@ -324,26 +327,26 @@ fun DayCard(dayName: String, dayOfMonth: String, isSelected: Boolean, onClick: (
 }
 
 // 3. Barra de navegación inferior
+// Agregamos la función de navegación como parámetro
 @Composable
-fun MyBottomNavigationBar() {
+fun MyBottomNavigationBar(onNavigateToHabitList: () -> Unit) {
     NavigationBar(
-        containerColor = Color.White,
+        containerColor = MaterialTheme.colorScheme.surface, // <--- CORRECCIÓN DE COLOR AQUÍ
         tonalElevation = 8.dp
     ) {
         NavigationBarItem(
             icon = { Icon(Icons.Default.DateRange, "Hoy") },
             label = { Text("Hoy") },
             selected = true,
-            onClick = {}
+            onClick = {} // Ya estamos en Hoy
         )
         NavigationBarItem(
             icon = { Icon(Icons.AutoMirrored.Filled.List, "Hábitos") },
             label = { Text("Hábitos") },
             selected = false,
-            onClick = {}
+            onClick = { onNavigateToHabitList() } // <--- CONECTAMOS EL CLIC
         )
 
-        // Espacio vital para que el FAB central no tape los iconos
         Spacer(Modifier.weight(1f))
 
         NavigationBarItem(
@@ -370,6 +373,11 @@ fun DashboardScreenPreview() {
         Habito(2, "Estudiar Kotlin", CategoriaHabito.ESTUDIO, TipoFrecuencia.DIARIA, "#FF8C00", true, Date())
     )
     Dash_TrackerTheme {
-        DashboardScreen(onNavigateToCreateHabit = {}, onNavigateToSettings = {}, habitos = sampleHabitos)
+        DashboardScreen(
+            onNavigateToCreateHabit = {},
+            onNavigateToSettings = {},
+            onNavigateToHabitList = {},
+            habitos = sampleHabitos
+        )
     }
 }
