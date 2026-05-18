@@ -26,11 +26,13 @@ jobs:
         with:
           cache-overwrite-existing: true
 
-      # Solo recreamos el archivo de Firebase si lo estás usando
-      - name: Recrear google-services.json (Firebase)
-        run: |
-          mkdir -p app/
-          echo "${{ secrets.GOOGLE_SERVICES_JSON }}" > app/google-services.json
+      # Recreación de google-services.json usando decodificación binaria interna segura
+      - name: Recrear google-services.json de manera segura
+        uses: timheuer/create-content-file@v7
+        with:
+          fileName: 'app/google-services.json'
+          content: ${{ secrets.GOOGLE_SERVICES_JSON }}
+          isBase64: true
 
       - name: Dar permisos de ejecución a Gradle Wrapper
         run: chmod +x ./gradlew
