@@ -99,4 +99,10 @@ dependencies {
     implementation(libs.firebase.firestore)
     implementation(libs.play.services.auth)
 
+    // DEPENDENCIAS DE TEST UNITARIO (Corren rápido en la JVM de GitHub Actions)
+    testImplementation("junit:junit:4.13.2")
+    testImplementation("io.mockk:mockk:1.13.8") // Excelente para mockear en Kotlin
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3") // Para probar ViewModels con Corrutinas
+    testImplementation("androidx.arch.core:core-testing:2.2.0") // Reglas de arquitectura para LiveData/Flows
+
 }

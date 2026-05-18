@@ -1,0 +1,46 @@
+name: Android CI (Testing)
+
+on:
+  push:
+    branches: [ "main", "develop" ]
+  pull_request:
+    branches: [ "main", "develop" ]
+
+jobs:
+  test:
+    name: Run Unit Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout el código
+        uses: actions/checkout@v4
+
+      - name: Configurar Java JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Configurar Gradle y Caché
+        uses: gradle/actions/setup-gradle@v3
+        with:
+          cache-overwrite-existing: true
+
+      # Solo recreamos el archivo de Firebase si lo estás usando
+      - name: Recrear google-services.json (Firebase)
+        run: |
+          mkdir -p app/
+          echo "${{ secrets.GOOGLE_SERVICES_JSON }}" > app/google-services.json
+
+      - name: Dar permisos de ejecución a Gradle Wrapper
+        run: chmod +x ./gradlew
+
+      - name: Ejecutar Pruebas Unitarias (Local)
+        run: ./gradlew testDebugUnitTest --continue
+
+      - name: Subir Reportes de Test
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: unit-test-reports
+          path: app/build/reports/tests/testDebugUnitTest/
