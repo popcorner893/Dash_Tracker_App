@@ -8,6 +8,7 @@ import com.dash_tracker.presentation.auth.LoginScreen
 import com.dash_tracker.presentation.auth.RegisterScreen
 import com.dash_tracker.presentation.habits.CreateHabitRoute
 import com.dash_tracker.presentation.habits.DashboardRoute
+import com.dash_tracker.presentation.habits.HabitListRoute
 import com.dash_tracker.presentation.habits.HabitListScreen
 import com.dash_tracker.presentation.settings.SettingsScreen
 
@@ -52,10 +53,14 @@ fun AppNavigation(
         }
 
         composable(Screen.HabitList.route) {
-            // Por ahora pasamos una lista vacía hasta conectar con el ViewModel real
-            HabitListScreen(
-                habitosProgress = emptyList(),
-                onHabitClick = { /* Navegar a detalle */ }
+            HabitListRoute(
+                onNavigateToDashboard = {
+                    navController.navigate(Screen.Dashboard.route) {
+                        popUpTo(Screen.Dashboard.route) { inclusive = true }
+                    }
+                },
+                onNavigateToSettings = { navController.navigate(Screen.Settings.route) },
+                onNavigateToCreateHabit = { navController.navigate(Screen.CreateHabit.route) }
             )
         }
 

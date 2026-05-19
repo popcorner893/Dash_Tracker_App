@@ -2,6 +2,8 @@ package com.dash_tracker.data.mapper
 
 import com.dash_tracker.data.local.entity.HabitoEntity
 import com.dash_tracker.domain.model.Habito
+import com.dash_tracker.data.local.entity.RegistroHabitoEntity
+import com.dash_tracker.domain.model.RegistroHabito
 
 // Función de extensión para convertir Entity (Base de datos) a Modelo Puro (Dominio)
 fun HabitoEntity.toDomain(): Habito {
@@ -27,4 +29,9 @@ fun Habito.toEntity(): HabitoEntity {
         activo = activo,
         fechaCreacion = fechaCreacion
     )
+}
+
+
+fun RegistroHabitoEntity.toDomain(): RegistroHabito {
+    return RegistroHabito(id, habitoId, fecha, completado, nota)
 }

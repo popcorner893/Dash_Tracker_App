@@ -1,41 +1,63 @@
 package com.dash_tracker.data.repository
 
 import com.dash_tracker.data.local.dao.HabitoDao
+import com.dash_tracker.data.local.dao.RegistroHabitoDao // <--- NUEVO
+import com.dash_tracker.data.local.entity.RegistroHabitoEntity // <--- NUEVO
 import com.dash_tracker.data.mapper.toDomain
 import com.dash_tracker.data.mapper.toEntity
 import com.dash_tracker.domain.model.Habito
-import com.dash_tracker.domain.repository.HabitoRepository
+import com.dash_tracker.domain.model.RegistroHabito
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import java.util.Date // <--- NUEVO
 
-// Esta clase hereda de la interfaz del dominio
+// Agregamos RegistroHabitoDao al constructor
 class HabitoRepositoryImpl(
-    private val habitoDao: HabitoDao
-    // Más adelante agregaremos aquí a FirebaseFirestore
+    private val habitoDao: HabitoDao,
+    private val registroHabitoDao: RegistroHabitoDao // <--- NUEVO
 ) : HabitoRepository {
 
     override fun getHabitosActivos(): Flow<List<Habito>> {
-        // Leemos de SQLite (rápido, funciona sin internet) y lo mapeamos al Dominio
         return habitoDao.getHabitosActivos().map { listaEntities ->
             listaEntities.map { entity -> entity.toDomain() }
         }
     }
 
     override suspend fun crearHabito(habito: Habito) {
-        // 1. Lo guardamos en SQLite local (La interfaz se actualiza al instante)
         habitoDao.insertHabito(habito.toEntity())
-
-        // 2. TODO: Aquí agregaremos el código para enviarlo a Firebase (Nube)
     }
 
     override suspend fun archivarHabito(id: Int) {
-        // 1. Lo ocultamos en la BD local
         habitoDao.archivarHabito(id)
-
-        // 2. TODO: Aquí agregaremos el código para actualizar el estado en Firebase
     }
 
     override suspend fun sincronizarConNube() {
-        // TODO: Lógica para comparar qué hay en SQLite y qué hay en Firebase
+        // TODO: Lógica
     }
+
+    // --- NUEVA FUNCIÓN IMPLEMENTADA PARA EL CHECK-IN ---
+    override suspend fun hacerCheckIn(habitoId: Int, fecha: Date, completado: Boolean) {
+        // 1. ELIMINAMOS cualquier registro duplicado de ese mismo día para evitar el bug del botón
+        registroHabitoDao.deleteRegistroPorFecha(habitoId, fecha)
+
+        // 2. GUARDAMOS el nuevo registro limpio
+        val registro = RegistroHabitoEntity(
+            habitoId = habitoId,
+            fecha = fecha,
+            completado = completado,
+            nota = null
+        )
+        registroHabitoDao.insertRegistro(registro)
+    }
+
+    override suspend fun eliminarCheckIn(habitoId: Int, fecha: Date) {
+        registroHabitoDao.deleteRegistroPorFecha(habitoId, fecha)
+    }
+
+    override fun getAllRegistros(): Flow<List<RegistroHabito>> {
+        return registroHabitoDao.getAllRegistros().map { lista ->
+            lista.map { it.toDomain() }
+        }
+    }
+
 }

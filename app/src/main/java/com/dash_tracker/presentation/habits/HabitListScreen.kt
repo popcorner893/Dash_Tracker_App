@@ -13,6 +13,9 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -21,6 +24,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.dash_tracker.presentation.navigation.AppDrawer
+import kotlinx.coroutines.launch
 
 // --- ESTRUCTURA DE DATOS PARA LA VISTA ---
 // Esta clase envuelve el Hábito con las estadísticas calculadas para la tarjeta
@@ -40,113 +46,145 @@ data class DayStatus(
     val estado: TipoEstadoDia
 )
 
-enum class TipoEstadoDia { COMPLETADO, PENDIENTE, HOY }
+enum class TipoEstadoDia { COMPLETADO, FALLIDO, PENDIENTE, HOY }
 
-// --- PANTALLA PRINCIPAL ---
+// --- ENTRY POINT REAL DE LA PANTALLA ---
+@Composable
+fun HabitListRoute(
+    onNavigateToDashboard: () -> Unit,
+    onNavigateToSettings: () -> Unit, // <-- NUEVO
+    onNavigateToCreateHabit: () -> Unit, // <-- NUEVO
+    viewModel: HabitViewModel = hiltViewModel()
+) {
+    val habitosProgress by viewModel.habitosProgress.collectAsState()
+    HabitListScreen(
+        habitosProgress = habitosProgress,
+        onNavigateToDashboard = onNavigateToDashboard,
+        onNavigateToSettings = onNavigateToSettings,
+        onNavigateToCreateHabit = onNavigateToCreateHabit,
+        onHabitClick = { /* TODO */ }
+    )
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HabitListScreen(
-    // Aquí recibiremos la lista desde el ViewModel más adelante
     habitosProgress: List<HabitProgressUI>,
+    onNavigateToDashboard: () -> Unit,
+    onNavigateToSettings: () -> Unit,
+    onNavigateToCreateHabit: () -> Unit,
     onHabitClick: (Int) -> Unit
 ) {
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Hábitos", fontWeight = FontWeight.Bold) },
-                navigationIcon = {
-                    IconButton(onClick = { /* Abrir menú lateral */ }) {
-                        Icon(Icons.Default.Menu, contentDescription = "Menú")
-                    }
+    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
+    val scope = rememberCoroutineScope()
+
+    // 1. ENVOLVEMOS CON EL DRAWER
+    ModalNavigationDrawer(
+        drawerState = drawerState,
+        drawerContent = {
+            AppDrawer(
+                onNavigateToHabits = { scope.launch { drawerState.close() } },
+                onNavigateToProfile = { },
+                onNavigateToFocus = { },
+                onNavigateToSettings = {
+                    onNavigateToSettings()
+                    scope.launch { drawerState.close() }
                 },
-                actions = {
-                    IconButton(onClick = { /* Buscar */ }) {
-                        Icon(Icons.Default.Search, contentDescription = "Buscar")
-                    }
-                    IconButton(onClick = { /* Filtrar */ }) {
-                        Icon(Icons.Default.FilterList, contentDescription = "Filtrar")
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color(0xFF121212), // Fondo oscuro
-                    titleContentColor = Color.White,
-                    actionIconContentColor = Color.White
-                )
+                onNavigateToPremium = { },
+                closeDrawer = { scope.launch { drawerState.close() } }
             )
-        },
-        containerColor = Color(0xFF121212) // Fondo global oscuro de la app
-    ) { padding ->
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-            contentPadding = PaddingValues(top = 16.dp, bottom = 100.dp) // Espacio inferior para el nav
-        ) {
-            items(habitosProgress) { habit ->
-                HabitProgressCard(habit = habit, onClick = { onHabitClick(habit.id) })
+        }
+    ) {
+        Scaffold(
+            topBar = {
+                TopAppBar(
+                    title = { Text("Hábitos", fontWeight = FontWeight.Bold) },
+                    navigationIcon = {
+                        // AHORA ESTE BOTÓN ABRE EL MENÚ
+                        IconButton(onClick = { scope.launch { drawerState.open() } }) {
+                            Icon(Icons.Default.Menu, contentDescription = "Menú")
+                        }
+                    },
+                    actions = {
+                        IconButton(onClick = { }) { Icon(Icons.Default.Search, "Buscar") }
+                        IconButton(onClick = { }) { Icon(Icons.Default.FilterList, "Filtrar") }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
+                )
+            },
+            // 2. AGREGAMOS EL FAB
+            floatingActionButton = {
+                FloatingActionButton(
+                    onClick = onNavigateToCreateHabit,
+                    shape = CircleShape,
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(65.dp).offset(y = 50.dp)
+                ) {
+                    Icon(Icons.Default.Add, "Añadir", tint = Color.White, modifier = Modifier.size(40.dp))
+                }
+            },
+            floatingActionButtonPosition = FabPosition.Center,
+            bottomBar = {
+                MyBottomNavigationBar(
+                    onNavigateToDashboard = onNavigateToDashboard,
+                    onNavigateToHabitList = { },
+                    currentRoute = "HabitList"
+                )
+            },
+            containerColor = MaterialTheme.colorScheme.background
+        ) { padding ->
+            LazyColumn(
+                modifier = Modifier.fillMaxSize().padding(padding).padding(horizontal = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+                contentPadding = PaddingValues(top = 16.dp, bottom = 100.dp)
+            ) {
+                items(habitosProgress) { habit ->
+                    HabitProgressCard(habit = habit, onClick = { onHabitClick(habit.id) })
+                }
             }
         }
     }
 }
 
-// --- COMPONENTE: LA TARJETA DEL HÁBITO ---
 @Composable
 fun HabitProgressCard(habit: HabitProgressUI, onClick: () -> Unit) {
     val habitColor = Color(habit.colorHex)
 
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { onClick() },
+        modifier = Modifier.fillMaxWidth().clickable { onClick() },
         shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFF1E1E1E)) // Gris oscuro como en tu foto
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            // CABECERA: Título, Frecuencia e Ícono
+            // CABECERA
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Column {
-                    Text(
-                        text = habit.titulo,
-                        color = Color.White,
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold
-                    )
+                    Text(text = habit.titulo, color = MaterialTheme.colorScheme.onSurface, fontSize = 18.sp, fontWeight = FontWeight.Bold)
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
                         text = habit.frecuencia,
-                        color = habitColor.copy(alpha = 0.8f),
+                        color = habitColor,
                         fontSize = 12.sp,
                         modifier = Modifier
-                            .background(habitColor.copy(alpha = 0.15f), RoundedCornerShape(4.dp))
+                            .background(habitColor.copy(alpha = 0.1f), RoundedCornerShape(4.dp))
                             .padding(horizontal = 6.dp, vertical = 2.dp)
                     )
                 }
-
-                // Ícono de la esquina superior derecha (Ej. La casita)
                 Box(
-                    modifier = Modifier
-                        .size(40.dp)
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(habitColor),
+                    modifier = Modifier.size(40.dp).clip(RoundedCornerShape(12.dp)).background(habitColor),
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Home, // TODO: Hacer dinámico según la categoría
-                        contentDescription = "Ícono del Hábito",
-                        tint = Color(0xFF1E1E1E) // Contraste oscuro
-                    )
+                    Icon(Icons.Default.Home, null, tint = Color.White)
                 }
             }
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // CALENDARIO SEMANAL: Bolitas de los días
+            // --- AQUÍ ESTÁ EL CALENDARIO QUE FALTABA ---
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
@@ -155,40 +193,26 @@ fun HabitProgressCard(habit: HabitProgressUI, onClick: () -> Unit) {
                     DayProgressCircle(day = day, habitColor = habitColor)
                 }
             }
+            // ------------------------------------------
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // PIE DE TARJETA: Estadísticas y Acciones
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                // Racha (Cadena)
-                Icon(Icons.Default.Link, contentDescription = "Racha", tint = habitColor, modifier = Modifier.size(18.dp))
+            // RACHA Y PORCENTAJE
+            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Default.LocalFireDepartment, "Racha", tint = habitColor, modifier = Modifier.size(20.dp))
                 Spacer(modifier = Modifier.width(4.dp))
-                Text("${habit.racha}", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                Text("${habit.racha}", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold, fontSize = 14.sp)
 
                 Spacer(modifier = Modifier.width(16.dp))
 
-                // Porcentaje (Chulito)
-                Icon(Icons.Outlined.CheckCircle, contentDescription = "Porcentaje", tint = habitColor, modifier = Modifier.size(18.dp))
+                Icon(Icons.Outlined.CheckCircle, "Porcentaje", tint = habitColor, modifier = Modifier.size(18.dp))
                 Spacer(modifier = Modifier.width(4.dp))
-                Text("${habit.porcentaje}%", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                Text("${habit.porcentaje}%", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold, fontSize = 14.sp)
 
-                Spacer(modifier = Modifier.weight(1f)) // Empuja los siguientes íconos a la derecha
-
-                // Botones de acción
-                IconButton(onClick = { }, modifier = Modifier.size(24.dp)) {
-                    Icon(Icons.Default.DateRange, "Calendario", tint = Color.Gray)
-                }
+                Spacer(modifier = Modifier.weight(1f))
+                IconButton(onClick = { }, modifier = Modifier.size(24.dp)) { Icon(Icons.Default.DateRange, "Calendario", tint = Color.Gray) }
                 Spacer(modifier = Modifier.width(16.dp))
-                IconButton(onClick = { }, modifier = Modifier.size(24.dp)) {
-                    Icon(Icons.Default.BarChart, "Estadísticas", tint = Color.Gray)
-                }
-                Spacer(modifier = Modifier.width(8.dp))
-                IconButton(onClick = { }, modifier = Modifier.size(24.dp)) {
-                    Icon(Icons.Default.MoreVert, "Opciones", tint = Color.Gray)
-                }
+                IconButton(onClick = { }, modifier = Modifier.size(24.dp)) { Icon(Icons.Default.BarChart, "Stats", tint = Color.Gray) }
             }
         }
     }
@@ -197,6 +221,9 @@ fun HabitProgressCard(habit: HabitProgressUI, onClick: () -> Unit) {
 // --- COMPONENTE: BOLITA DE UN DÍA ---
 @Composable
 fun DayProgressCircle(day: DayStatus, habitColor: Color) {
+    // Definimos el verde de éxito
+    val colorCompletado = Color(0xFF4CAF50)
+
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Text(text = day.nombreDia, color = Color.Gray, fontSize = 12.sp)
         Spacer(modifier = Modifier.height(8.dp))
@@ -207,23 +234,30 @@ fun DayProgressCircle(day: DayStatus, habitColor: Color) {
                 .clip(CircleShape)
                 .border(
                     width = 2.dp,
-                    // Si es HOY, el borde es verde (como en tu foto), sino, usa el color del hábito o gris
                     color = when (day.estado) {
-                        TipoEstadoDia.HOY -> Color(0xFF4CAF50) // Verde
-                        TipoEstadoDia.COMPLETADO -> habitColor
+                        TipoEstadoDia.COMPLETADO -> colorCompletado // <-- AHORA ES VERDE
+                        TipoEstadoDia.HOY -> habitColor // <-- AHORA USA EL COLOR DEL HÁBITO
+                        TipoEstadoDia.FALLIDO -> Color(0xFFE53935)
                         TipoEstadoDia.PENDIENTE -> Color.Gray.copy(alpha = 0.3f)
                     },
                     shape = CircleShape
                 )
-                // Fondo: Solo se rellena si está completado
                 .background(
-                    if (day.estado == TipoEstadoDia.COMPLETADO) habitColor.copy(alpha = 0.2f) else Color.Transparent
+                    when (day.estado) {
+                        TipoEstadoDia.COMPLETADO -> colorCompletado.copy(alpha = 0.2f) // Fondo verdecito
+                        TipoEstadoDia.FALLIDO -> Color(0xFFE53935).copy(alpha = 0.1f)
+                        else -> Color.Transparent
+                    }
                 ),
             contentAlignment = Alignment.Center
         ) {
             Text(
                 text = day.numeroDia,
-                color = if (day.estado == TipoEstadoDia.HOY) Color(0xFF4CAF50) else Color.White,
+                color = when (day.estado) {
+                    TipoEstadoDia.HOY -> habitColor // <-- EL NÚMERO DE HOY TOMA EL COLOR DEL HÁBITO
+                    TipoEstadoDia.FALLIDO -> Color(0xFFE53935)
+                    else -> MaterialTheme.colorScheme.onSurface
+                },
                 fontWeight = if (day.estado == TipoEstadoDia.HOY) FontWeight.Bold else FontWeight.Normal,
                 fontSize = 14.sp
             )
@@ -258,6 +292,12 @@ fun HabitListScreenPreview() {
 
     // Le pasamos un tema oscuro para que se vea igual a tu foto
     MaterialTheme(colorScheme = darkColorScheme()) {
-        HabitListScreen(habitosProgress = mockHabits, onHabitClick = {})
+        HabitListScreen(
+            habitosProgress = mockHabits,
+            onNavigateToDashboard = {},
+            onNavigateToSettings = {},
+            onNavigateToCreateHabit = {},
+            onHabitClick = {}
+        )
     }
 }

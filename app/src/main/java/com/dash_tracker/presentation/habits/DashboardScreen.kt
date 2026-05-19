@@ -1,5 +1,7 @@
 package com.dash_tracker.presentation.habits
 
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.border
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -38,11 +40,11 @@ import java.util.Date
 fun DashboardScreen(
     onNavigateToCreateHabit: () -> Unit,
     onNavigateToSettings: () -> Unit,
-    onNavigateToHabitList: () -> Unit, // <--- NUEVO
-    habitos: List<Habito> = emptyList()
+    onNavigateToHabitList: () -> Unit,
+    habitos: List<Habito> = emptyList(),
+    registros: List<com.dash_tracker.domain.model.RegistroHabito> = emptyList(), // <-- AGREGAR AQUÍ
+    onCheckClick: (Int, Int, java.util.Date) -> Unit = { _, _, _ -> }
 ) {
-    // 1. Corregir TimeZone para evitar conflictos con java.util
-    val userTimeZone = remember { TimeZone.currentSystemDefault() }
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
     var selectedDate by remember { mutableStateOf(Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date) }
@@ -121,7 +123,13 @@ fun DashboardScreen(
                 }
             },
             floatingActionButtonPosition = FabPosition.Center,
-            bottomBar = { MyBottomNavigationBar(onNavigateToHabitList = onNavigateToHabitList) }
+            bottomBar = {
+                MyBottomNavigationBar(
+                    onNavigateToDashboard = { /* Ya estamos aquí */ },
+                    onNavigateToHabitList = onNavigateToHabitList,
+                    currentRoute = "Dashboard"
+                )
+            }
         ) { padding ->
 
             // --- DATE PICKER (Encapsulado para evitar crashes en preview) ---
@@ -198,22 +206,34 @@ fun DashboardScreen(
                 // Usamos 'habitosFiltrados' en lugar de la original 'habitos'
                 if (habitosFiltrados.isEmpty()) {
                     Box(modifier = Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
-                        Text(
-                            text = if (categoriaSeleccionada == "Todos") "No hay hábitos para este día" else "No tienes hábitos en $categoriaSeleccionada",
-                            color = Color.Gray
-                        )
+                        Text(text = "No hay hábitos...", color = Color.Gray)
                     }
                 } else {
                     LazyColumn(
-                        modifier = Modifier
-                            .weight(1f)
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp),
+                        modifier = Modifier.weight(1f).fillMaxWidth().padding(horizontal = 16.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp),
-                        contentPadding = PaddingValues(bottom = 100.dp) // Espacio para el FAB
+                        contentPadding = PaddingValues(bottom = 100.dp)
                     ) {
                         items(habitosFiltrados) { habito ->
-                            HabitCard(habito)
+
+                            // CALCULAMOS EL ESTADO REAL LEYENDO LA BD
+                            val millisHoy = selectedDate.atStartOfDayIn(TimeZone.currentSystemDefault()).toEpochMilliseconds()
+                            val registroHoy = registros.find { it.habitoId == habito.id && it.fecha.time == millisHoy }
+
+                            val estadoActual = when {
+                                registroHoy == null -> 0
+                                registroHoy.completado -> 1
+                                else -> 2
+                            }
+
+                            HabitCard(
+                                habito = habito,
+                                estadoActual = estadoActual, // <-- LE PASAMOS EL ESTADO
+                                onCheckClick = { nuevoEstado ->
+                                    val dateToSave = java.util.Date(millisHoy)
+                                    onCheckClick(habito.id, nuevoEstado, dateToSave)
+                                }
+                            )
                         }
                     }
                 }
@@ -223,13 +243,12 @@ fun DashboardScreen(
 }
 
 @Composable
-fun HabitCard(habito: Habito) {
-    // Usamos el toVisual() normal sin @Composable
+fun HabitCard(habito: Habito, estadoActual: Int, onCheckClick: (Int) -> Unit) { // <-- AGREGAMOS estadoActual
     val uiConfig = habito.categoria.toVisual()
-
+    // Definimos el mismo verde de éxito aquí
+    val colorCompletado = Color(0xFF4CAF50)
     val habitCheckColor = remember(habito.color) {
-        try { Color(habito.color.toColorInt()) }
-        catch (e: Exception) { Color.Gray }
+        try { Color(habito.color.toColorInt()) } catch (_: Exception) { Color.Gray }
     }
 
     Card(
@@ -241,6 +260,7 @@ fun HabitCard(habito: Habito) {
             modifier = Modifier.padding(16.dp).fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
+            // Ícono de la categoría
             Box(
                 modifier = Modifier
                     .size(40.dp)
@@ -248,16 +268,12 @@ fun HabitCard(habito: Habito) {
                     .background(uiConfig.color.copy(alpha = 0.1f)),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(
-                    imageVector = uiConfig.icono,
-                    contentDescription = null,
-                    tint = uiConfig.color,
-                    modifier = Modifier.size(24.dp)
-                )
+                Icon(uiConfig.icono, null, tint = uiConfig.color, modifier = Modifier.size(24.dp))
             }
 
             Spacer(modifier = Modifier.width(16.dp))
 
+            // Textos
             Column(modifier = Modifier.weight(1f)) {
                 Text(text = habito.titulo, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                 Text(
@@ -267,11 +283,32 @@ fun HabitCard(habito: Habito) {
                 )
             }
 
+            // --- EL BOTÓN INTERACTIVO DE 3 ESTADOS ---
             Box(
-                modifier = Modifier.size(32.dp).clip(CircleShape).background(habitCheckColor),
+                modifier = Modifier
+                    .size(32.dp)
+                    .clip(CircleShape)
+                    .background(
+                        when (estadoActual) {
+                            1 -> colorCompletado // <-- AHORA EL CHECK SIEMPRE ES VERDE
+                            2 -> Color(0xFFE53935) // Rojo (X)
+                            else -> Color.Transparent
+                        }
+                    )
+                    .border(
+                        border = if (estadoActual == 0) BorderStroke(2.dp, Color.Gray.copy(alpha = 0.5f)) else BorderStroke(0.dp, Color.Transparent),
+                        shape = CircleShape
+                    )
+                    .clickable {
+                        val proximoEstado = (estadoActual + 1) % 3
+                        onCheckClick(proximoEstado)
+                    },
                 contentAlignment = Alignment.Center
             ) {
-                Icon(Icons.Default.Check, null, tint = Color.White, modifier = Modifier.size(20.dp))
+                when (estadoActual) {
+                    1 -> Icon(Icons.Default.Check, null, tint = Color.White, modifier = Modifier.size(20.dp))
+                    2 -> Icon(Icons.Default.Close, null, tint = Color.White, modifier = Modifier.size(20.dp))
+                }
             }
         }
     }
@@ -283,15 +320,19 @@ fun HabitCard(habito: Habito) {
 fun DashboardRoute(
     onNavigateToCreateHabit: () -> Unit,
     onNavigateToSettings: () -> Unit,
-    onNavigateToHabitList: () -> Unit, // <--- NUEVO
+    onNavigateToHabitList: () -> Unit,
     viewModel: HabitViewModel = hiltViewModel()
 ) {
     val habitos by viewModel.habitos.collectAsState()
+    val registros by viewModel.registros.collectAsState() // <-- NUEVO
+
     DashboardScreen(
         onNavigateToCreateHabit = onNavigateToCreateHabit,
         onNavigateToSettings = onNavigateToSettings,
-        onNavigateToHabitList = onNavigateToHabitList, // <--- NUEVO
-        habitos = habitos
+        onNavigateToHabitList = onNavigateToHabitList,
+        habitos = habitos,
+        registros = registros, // <-- NUEVO PARÁMETRO
+        onCheckClick = { habitoId, estado, fecha -> viewModel.actualizarEstadoHabito(habitoId, estado, fecha) }
     )
 }
 
@@ -329,7 +370,11 @@ fun DayCard(dayName: String, dayOfMonth: String, isSelected: Boolean, onClick: (
 // 3. Barra de navegación inferior
 // Agregamos la función de navegación como parámetro
 @Composable
-fun MyBottomNavigationBar(onNavigateToHabitList: () -> Unit) {
+fun MyBottomNavigationBar(
+    onNavigateToDashboard: () -> Unit,
+    onNavigateToHabitList: () -> Unit,
+    currentRoute: String
+) {
     NavigationBar(
         containerColor = MaterialTheme.colorScheme.surface, // <--- CORRECCIÓN DE COLOR AQUÍ
         tonalElevation = 8.dp
@@ -337,13 +382,13 @@ fun MyBottomNavigationBar(onNavigateToHabitList: () -> Unit) {
         NavigationBarItem(
             icon = { Icon(Icons.Default.DateRange, "Hoy") },
             label = { Text("Hoy") },
-            selected = true,
-            onClick = {} // Ya estamos en Hoy
+            selected = currentRoute == "Dashboard",
+            onClick = { onNavigateToDashboard() }
         )
         NavigationBarItem(
             icon = { Icon(Icons.AutoMirrored.Filled.List, "Hábitos") },
             label = { Text("Hábitos") },
-            selected = false,
+            selected = currentRoute == "HabitList",
             onClick = { onNavigateToHabitList() } // <--- CONECTAMOS EL CLIC
         )
 
@@ -377,7 +422,9 @@ fun DashboardScreenPreview() {
             onNavigateToCreateHabit = {},
             onNavigateToSettings = {},
             onNavigateToHabitList = {},
-            habitos = sampleHabitos
+            onCheckClick = { _, _, _ -> },
+            habitos = sampleHabitos,
+            registros = emptyList()
         )
     }
 }

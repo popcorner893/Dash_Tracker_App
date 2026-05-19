@@ -8,7 +8,7 @@ import com.dash_tracker.data.local.dao.RegistroHabitoDao
 import com.dash_tracker.data.repository.AuthRepositoryImpl
 import com.dash_tracker.data.repository.HabitoRepositoryImpl
 import com.dash_tracker.domain.repository.AuthRepository
-import com.dash_tracker.domain.repository.HabitoRepository
+import com.dash_tracker.data.repository.HabitoRepository
 import com.google.firebase.auth.FirebaseAuth
 import dagger.Module
 import dagger.Provides
@@ -61,7 +61,11 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun provideHabitoRepository(habitoDao: HabitoDao): HabitoRepository {
-        return HabitoRepositoryImpl(habitoDao)
+    fun provideHabitoRepository(
+        habitoDao: HabitoDao,
+        registroHabitoDao: RegistroHabitoDao // <--- Le pedimos a Hilt el segundo DAO
+    ): HabitoRepository {
+        // Le pasamos AMBOS DAOs a nuestro repositorio
+        return HabitoRepositoryImpl(habitoDao, registroHabitoDao)
     }
 }

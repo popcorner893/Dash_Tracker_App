@@ -18,4 +18,11 @@ interface RegistroHabitoDao {
 
     @Query("DELETE FROM registros WHERE id = :registroId")
     suspend fun deleteRegistro(registroId: Int)
+
+    @Query("DELETE FROM registros WHERE habitoId = :habitoId AND fecha = :fecha")
+    suspend fun deleteRegistroPorFecha(habitoId: Int, fecha: java.util.Date)
+
+    @Query("SELECT * FROM registros")
+    fun getAllRegistros(): Flow<List<RegistroHabitoEntity>>
+
 }
