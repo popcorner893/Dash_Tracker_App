@@ -9,7 +9,7 @@ import com.dash_tracker.presentation.auth.RegisterScreen
 import com.dash_tracker.presentation.habits.CreateHabitRoute
 import com.dash_tracker.presentation.habits.DashboardRoute
 import com.dash_tracker.presentation.habits.HabitListRoute
-import com.dash_tracker.presentation.habits.HabitListScreen
+import com.dash_tracker.presentation.profile.ProfileScreen
 import com.dash_tracker.presentation.settings.SettingsScreen
 
 @Composable
@@ -48,7 +48,8 @@ fun AppNavigation(
             DashboardRoute(
                 onNavigateToCreateHabit = { navController.navigate(Screen.CreateHabit.route) },
                 onNavigateToSettings = { navController.navigate(Screen.Settings.route) },
-                onNavigateToHabitList = { navController.navigate(Screen.HabitList.route) }
+                onNavigateToHabitList = { navController.navigate(Screen.HabitList.route) },
+                onNavigateToProfile = { navController.navigate(Screen.Profile.route) }
             )
         }
 
@@ -60,12 +61,19 @@ fun AppNavigation(
                     }
                 },
                 onNavigateToSettings = { navController.navigate(Screen.Settings.route) },
-                onNavigateToCreateHabit = { navController.navigate(Screen.CreateHabit.route) }
+                onNavigateToCreateHabit = { navController.navigate(Screen.CreateHabit.route) },
+                onNavigateToProfile = { navController.navigate(Screen.Profile.route) }
             )
         }
 
         composable(Screen.CreateHabit.route) {
             CreateHabitRoute(
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(Screen.Profile.route) {
+            ProfileScreen(
                 onNavigateBack = { navController.popBackStack() }
             )
         }

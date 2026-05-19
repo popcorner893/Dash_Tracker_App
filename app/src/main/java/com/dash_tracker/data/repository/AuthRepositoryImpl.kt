@@ -91,4 +91,22 @@ class AuthRepositoryImpl(
     override fun logout() {
         firebaseAuth.signOut()
     }
+
+    override suspend fun updateUserName(newName: String): Result<Unit> {
+        return try {
+            val user = firebaseAuth.currentUser
+            if (user != null) {
+                val profileUpdates = com.google.firebase.auth.UserProfileChangeRequest.Builder()
+                    .setDisplayName(newName)
+                    .build()
+                
+                user.updateProfile(profileUpdates).await()
+                Result.success(Unit)
+            } else {
+                Result.failure(Exception("No hay usuario autenticado"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
 }

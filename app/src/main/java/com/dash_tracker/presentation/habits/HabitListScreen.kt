@@ -54,6 +54,7 @@ fun HabitListRoute(
     onNavigateToDashboard: () -> Unit,
     onNavigateToSettings: () -> Unit, // <-- NUEVO
     onNavigateToCreateHabit: () -> Unit, // <-- NUEVO
+    onNavigateToProfile: () -> Unit,
     viewModel: HabitViewModel = hiltViewModel()
 ) {
     val habitosProgress by viewModel.habitosProgress.collectAsState()
@@ -62,6 +63,7 @@ fun HabitListRoute(
         onNavigateToDashboard = onNavigateToDashboard,
         onNavigateToSettings = onNavigateToSettings,
         onNavigateToCreateHabit = onNavigateToCreateHabit,
+        onNavigateToProfile = onNavigateToProfile,
         onHabitClick = { /* TODO */ }
     )
 }
@@ -73,6 +75,7 @@ fun HabitListScreen(
     onNavigateToDashboard: () -> Unit,
     onNavigateToSettings: () -> Unit,
     onNavigateToCreateHabit: () -> Unit,
+    onNavigateToProfile: () -> Unit,
     onHabitClick: (Int) -> Unit
 ) {
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
@@ -84,7 +87,10 @@ fun HabitListScreen(
         drawerContent = {
             AppDrawer(
                 onNavigateToHabits = { scope.launch { drawerState.close() } },
-                onNavigateToProfile = { },
+                onNavigateToProfile = { 
+                    onNavigateToProfile()
+                    scope.launch { drawerState.close() }
+                },
                 onNavigateToFocus = { },
                 onNavigateToSettings = {
                     onNavigateToSettings()
@@ -297,6 +303,7 @@ fun HabitListScreenPreview() {
             onNavigateToDashboard = {},
             onNavigateToSettings = {},
             onNavigateToCreateHabit = {},
+            onNavigateToProfile = {},
             onHabitClick = {}
         )
     }

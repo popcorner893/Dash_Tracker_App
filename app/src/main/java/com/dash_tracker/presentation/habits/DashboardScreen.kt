@@ -41,6 +41,7 @@ fun DashboardScreen(
     onNavigateToCreateHabit: () -> Unit,
     onNavigateToSettings: () -> Unit,
     onNavigateToHabitList: () -> Unit,
+    onNavigateToProfile: () -> Unit,
     habitos: List<Habito> = emptyList(),
     registros: List<com.dash_tracker.domain.model.RegistroHabito> = emptyList(), // <-- AGREGAR AQUÍ
     onCheckClick: (Int, Int, java.util.Date) -> Unit = { _, _, _ -> }
@@ -84,7 +85,10 @@ fun DashboardScreen(
         drawerContent = {
             AppDrawer(
                 onNavigateToHabits = { scope.launch { drawerState.close() } },
-                onNavigateToProfile = { },
+                onNavigateToProfile = { 
+                    onNavigateToProfile()
+                    scope.launch { drawerState.close() } 
+                },
                 onNavigateToFocus = { },
                 onNavigateToSettings = { 
                     onNavigateToSettings()
@@ -321,6 +325,7 @@ fun DashboardRoute(
     onNavigateToCreateHabit: () -> Unit,
     onNavigateToSettings: () -> Unit,
     onNavigateToHabitList: () -> Unit,
+    onNavigateToProfile: () -> Unit,
     viewModel: HabitViewModel = hiltViewModel()
 ) {
     val habitos by viewModel.habitos.collectAsState()
@@ -330,6 +335,7 @@ fun DashboardRoute(
         onNavigateToCreateHabit = onNavigateToCreateHabit,
         onNavigateToSettings = onNavigateToSettings,
         onNavigateToHabitList = onNavigateToHabitList,
+        onNavigateToProfile = onNavigateToProfile,
         habitos = habitos,
         registros = registros, // <-- NUEVO PARÁMETRO
         onCheckClick = { habitoId, estado, fecha -> viewModel.actualizarEstadoHabito(habitoId, estado, fecha) }
@@ -422,6 +428,7 @@ fun DashboardScreenPreview() {
             onNavigateToCreateHabit = {},
             onNavigateToSettings = {},
             onNavigateToHabitList = {},
+            onNavigateToProfile = {},
             onCheckClick = { _, _, _ -> },
             habitos = sampleHabitos,
             registros = emptyList()
